@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APSI TALK</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- CSS STYLING --- */
+        :root {
+            --wa-header-bg: #005c97; 
+            --wa-accent-blue: #34B7F1;
+            --wa-message-out-bg: #e1f6fb;
+            --wa-message-in-bg: #ffffff;
+            --wa-app-bg: #f0f2f5;
+            --wa-chat-bg: #e5ddd5;
+            --wa-icon-color: #f0f2f5;
+            --wa-text-primary: #111b21;
+            --wa-text-secondary: #667781;
+            --wa-border-color: #e9edef;
+            --wa-active-tab-indicator: var(--wa-accent-blue);
+            --wa-button-color: #008069; 
+            --wa-link-color: #00a8e8;
+            --danger-color: #e91e63;
+            --success-color: #4CAF50;
+        }
+
+        * { box-sizing: border-box; outline: none; }
+
+        html, body {
+            height: 100%; width: 100%; margin: 0; padding: 0;
+            font-family: 'Roboto', sans-serif; background-color: #d1d7db;
+            overflow: hidden; display: flex; justify-content: center; align-items: center;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); }
+
+        #app-container {
+            width: 100%; max-width: 450px; height: 100%; max-height: 950px;
+            background-color: white; position: relative; overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column;
+        }
+
+        @media (min-width: 480px) { #app-container { height: 95vh; border-radius: 12px; } }
+
+        .hidden { display: none !important; }
+        .icon-btn {
+            background: none; border: none; cursor: pointer; padding: 8px;
+            color: var(--wa-icon-color); display: flex; align-items: center; justify-content: center;
+        }
+        .icon-btn svg { width: 24px; height: 24px; fill: currentColor; }
+
+        /* --- AUTH VIEW --- */
+        #auth-view {
+            flex: 1; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center;
+            background: var(--wa-app-bg); padding: 20px; text-align: center;
+        }
+        .app-logo {
+            width: 120px; height: 120px; border-radius: 20px; margin-bottom: 20px;
+            object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            background-color: #ddd; 
+        }
+        #auth-view h1 { color: var(--wa-header-bg); margin-bottom: 30px; margin-top: 0; }
+        .auth-form { width: 100%; display: flex; flex-direction: column; gap: 15px; }
+        .auth-input { padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
+        .auth-input:focus { border-color: var(--wa-accent-blue); }
+        .primary-btn {
+            padding: 12px; background: var(--wa-button-color); color: white;
+            border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px;
+        }
+        .switch-link { color: var(--wa-link-color); cursor: pointer; margin-top: 10px; font-size: 14px; }
+        .error-msg { color: var(--danger-color); font-size: 13px; min-height: 18px; }
+
+        /* --- MAIN VIEW --- */
+        #main-view { display: flex; flex-direction: column; height: 100%; }
+        .main-header { background-color: var(--wa-header-bg); color: white; padding-top: 10px; flex-shrink: 0; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; }
+        
+        .header-brand { display: flex; align-items: center; gap: 10px; }
+        /* Using object-fit to ensure logos look good */
+        .header-brand img { width: 35px; height: 35px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); object-fit: cover; background: white;}
+        .header-brand h2 { margin: 0; font-size: 20px; font-weight: 500; }
+        
+        .header-actions { display: flex; gap: 10px; }
+        .header-nav { display: flex; margin-top: 10px; }
+        .nav-tab {
+            flex: 1; text-align: center; padding: 12px 0; color: rgba(255,255,255,0.6);
+            cursor: pointer; text-transform: uppercase; font-size: 14px; font-weight: 500; position: relative;
+        }
+        .nav-tab.active { color: white; border-bottom: 3px solid var(--wa-active-tab-indicator); }
+        .badge {
+            background: var(--wa-accent-blue); color: white; font-size: 10px;
+            padding: 2px 6px; border-radius: 10px; position: absolute; top: 8px; margin-left: 4px;
+        }
+        .badge:empty { display: none; }
+        #main-content { flex: 1; overflow-y: auto; background: var(--wa-app-bg); position: relative; }
+        .content-panel { display: none; height: 100%; }
+        .content-panel.active { display: block; }
+
+        /* List Items */
+        .list-item {
+            display: flex; align-items: center; padding: 12px 16px;
+            background: white; border-bottom: 1px solid var(--wa-border-color); cursor: pointer;
+        }
+        .list-item:hover { background: #f5f5f5; }
+        .avatar {
+            width: 45px; height: 45px; background: #ddd; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 15px; flex-shrink: 0;
+        }
+        .item-details { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        .item-name { font-weight: 500; font-size: 16px; color: var(--wa-text-primary); }
+        .item-subtext { font-size: 13px; color: var(--wa-text-secondary); margin-top: 3px; }
+        .item-actions { display: flex; gap: 10px; }
+
+        /* --- CHAT VIEW --- */
+        #chat-view {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--wa-chat-bg); z-index: 10; display: flex; flex-direction: column;
+        }
+        .chat-header {
+            background: var(--wa-header-bg); color: white; padding: 10px;
+            display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+        }
+        .chat-title { flex: 1; font-weight: 500; font-size: 18px; margin-left: 5px;}
+        #chat-messages {
+            flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px;
+            background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23bdbdbd' fill-opacity='0.15' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E");
+        }
+        .message-bubble {
+            max-width: 75%; padding: 6px 10px; border-radius: 8px;
+            font-size: 14.2px; line-height: 19px; position: relative; word-wrap: break-word;
+            box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+        }
+        .message-sent { align-self: flex-end; background: var(--wa-message-out-bg); border-top-right-radius: 0; }
+        .message-received { align-self: flex-start; background: var(--wa-message-in-bg); border-top-left-radius: 0; }
+        .msg-time { font-size: 10px; color: var(--wa-text-secondary); float: right; margin-top: 4px; margin-left: 6px; }
+        #chat-input-container { padding: 8px; background: var(--wa-app-bg); display: flex; align-items: center; gap: 8px; }
+        #chat-input { flex: 1; padding: 10px 15px; border-radius: 20px; border: none; background: white; }
+        #chat-send-btn { background: var(--wa-button-color); color: white; border-radius: 50%; width: 40px; height: 40px; padding: 0; }
+
+        /* --- CALL VIEW --- */
+        .call-view {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 20; display: flex; flex-direction: column;
+        }
+        #remote-video { width: 100%; height: 100%; object-fit: cover; }
+        #local-video {
+            position: absolute; bottom: 100px; right: 20px; width: 100px; height: 130px;
+            background: #333; border: 2px solid white; border-radius: 8px; object-fit: cover; z-index: 21;
+        }
+        .call-overlay {
+            position: absolute; bottom: 0; width: 100%; padding: 40px 20px;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            display: flex; flex-direction: column; align-items: center; gap: 20px;
+        }
+        .caller-info { text-align: center; color: white; text-shadow: 0 1px 3px black; }
+        .call-controls { display: flex; gap: 30px; }
+        .call-btn {
+            width: 55px; height: 55px; border-radius: 50%; border: none;
+            display: flex; align-items: center; justify-content: center; cursor: pointer; color: white;
+        }
+        .btn-end { background: var(--danger-color); }
+        .btn-accept { background: var(--success-color); }
+
+        /* --- MODALS --- */
+        .modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 30; display: flex; align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: white; padding: 25px; border-radius: 12px; width: 85%;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: var(--wa-text-primary); }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-text { background: none; border: none; color: var(--wa-button-color); font-weight: bold; cursor: pointer; text-transform: uppercase;}
+
+        /* About Section Styles */
+        .dev-logo { width: 80px; height: 80px; margin: 0 auto 10px; display: block; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 5px rgba(0,0,0,0.2); background: #eee;}
+        .about-text { font-size: 13px; color: #555; line-height: 1.5; text-align: center; margin-bottom: 10px; }
+        .about-header { font-weight: bold; color: var(--wa-header-bg); text-align: center; margin-top: 15px; margin-bottom: 5px;}
+
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        
+        <audio id="ringtone" loop>
+            <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YXwAAAAAAA==" type="audio/wav">
+        </audio>
+
+        <div id="auth-view">
+            <img src="https://i.postimg.cc/9rFkHsKX/LOGO-jpg.png" alt="APSI TALK" class="app-logo" onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='block'">
+            <div id="logo-fallback" class="avatar" style="width:100px; height:100px; font-size:40px; margin: 0 auto 20px; display:none;">💎</div>
+
+            <h1>APSI TALK</h1>
+            
+            <form id="login-form" class="auth-form">
+                <input type="email" id="login-email" class="auth-input" placeholder="Email" required>
+                <input type="password" id="login-password" class="auth-input" placeholder="Password" required>
+                <div id="login-error" class="error-msg"></div>
+                <button type="submit" class="primary-btn">Login</button>
+                <div class="switch-link" id="go-to-signup">Don't have an account? Sign up</div>
+            </form>
+
+            <form id="signup-form" class="auth-form hidden">
+                <input type="email" id="signup-email" class="auth-input" placeholder="Email" required>
+                <input type="password" id="signup-password" class="auth-input" placeholder="Create Password" required>
+                <div id="signup-error" class="error-msg"></div>
+                <button type="submit" class="primary-btn">Sign Up</button>
+                <div class="switch-link" id="go-to-login">Already have an account? Login</div>
+            </form>
+        </div>
+
+        <div id="main-view" class="hidden">
+            <header class="main-header">
+                <div class="header-top">
+                    <div class="header-brand">
+                        <img src="https://i.postimg.cc/9rFkHsKX/LOGO-jpg.png" alt="Logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0xMiAyQzYuNDggMi 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zIi8+PC9zdmc+'">
+                        <h2>APSI TALK</h2>
+                    </div>
+                    <div class="header-actions">
+                        <button id="add-friend-btn" class="icon-btn">
+                            <svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                        </button>
+                        <button id="menu-btn" class="icon-btn">
+                            <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="header-nav">
+                    <div id="nav-home" class="nav-tab active">Chats <span id="badge-home" class="badge"></span></div>
+                    <div id="nav-notifications" class="nav-tab">Updates <span id="badge-notify" class="badge"></span></div>
+                    <div id="nav-calls" class="nav-tab">Calls</div>
+                </div>
+            </header>
+
+            <main id="main-content">
+                <div id="home-content" class="content-panel active"></div>
+                <div id="notifications-content" class="content-panel"></div>
+                <div id="calls-content" class="content-panel"></div>
+            </main>
+        </div>
+
+        <div id="chat-view" class="hidden">
+            <header class="chat-header">
+                <button id="chat-back-btn" class="icon-btn"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+                <div class="avatar" style="width:35px; height:35px; margin:0;" id="chat-header-avatar"></div>
+                <div class="chat-title" id="chat-header-name">User</div>
+                
+                <button id="about-btn" class="icon-btn" title="About">
+                    <svg viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+                </button>
+                <button id="voice-call-btn" class="icon-btn"><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></button>
+                <button id="video-call-btn" class="icon-btn"><svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg></button>
+                <button id="chat-more-btn" class="icon-btn"><svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg></button>
+            </header>
+            <div id="chat-messages"></div>
+            <div id="chat-input-container">
+                <input type="text" id="chat-input" placeholder="Message">
+                <button id="chat-send-btn" class="icon-btn"><svg viewBox="0 0 24 24" style="transform: rotate(-30deg); margin-left: -2px;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+            </div>
+        </div>
+
+        <div id="video-call-view" class="call-view hidden">
+            <video id="remote-video" autoplay playsinline></video>
+            <video id="local-video" autoplay playsinline muted></video>
+            <div class="call-overlay">
+                <div class="caller-info">
+                    <h2 id="video-caller-name">Contact</h2>
+                    <p>Video Call</p>
+                </div>
+                <button class="call-btn btn-end" id="end-video-call-btn">
+                    <svg viewBox="0 0 24 24" style="width:30px;height:30px;fill:white"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
+                </button>
+            </div>
+        </div>
+        
+        <div id="voice-call-view" class="call-view hidden" style="background: #111;">
+            <audio id="remote-audio" autoplay></audio>
+            <div class="call-overlay" style="height:100%; justify-content:center;">
+                <div class="avatar" id="voice-caller-avatar" style="width:100px; height:100px; font-size:40px; margin-bottom:20px;"></div>
+                <div class="caller-info">
+                    <h2 id="voice-caller-name">Contact</h2>
+                    <p>Voice Call</p>
+                </div>
+                <div class="call-controls" style="margin-top: 50px;">
+                    <button class="call-btn btn-end" id="end-voice-call-btn">
+                         <svg viewBox="0 0 24 24" style="width:30px;height:30px;fill:white"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="profile-setup-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-title">Complete Profile</div>
+                <input type="text" id="setup-username" class="auth-input" placeholder="Choose unique Username" style="width:100%; margin-bottom:10px;">
+                <input type="text" id="setup-name" class="auth-input" placeholder="Display Name" style="width:100%; margin-bottom:10px;">
+                <input type="text" id="setup-emoji" class="auth-input" placeholder="Pick an Emoji (e.g. 🦁)" maxlength="2" style="width:100%;">
+                <div class="modal-actions">
+                    <button id="save-profile-btn" class="btn-text">Save & Start</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="add-friend-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-title">Add Friend</div>
+                <p style="color:var(--wa-text-secondary); font-size:14px; margin-bottom:10px;">Enter their Username:</p>
+                <input type="text" id="add-friend-username" class="auth-input" placeholder="Username" style="width:100%">
+                <div class="modal-actions">
+                    <button class="btn-text" onclick="showModal('add-friend-modal', false)">Cancel</button>
+                    <button id="submit-friend-req" class="btn-text">Send Request</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="profile-view-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-title">My Profile</div>
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div id="profile-display-avatar" class="avatar" style="width:80px; height:80px; font-size:35px; margin: 0 auto 10px;"></div>
+                    <h3 id="profile-display-name" style="margin:0;"></h3>
+                    <p id="profile-display-username" style="color:gray; margin:5px 0;">@username</p>
+                </div>
+                <div style="border-top: 1px solid #eee; padding-top: 10px;">
+                     <p>Blocked Users:</p>
+                     <ul id="blocked-list" style="padding-left: 20px; font-size:14px;"></ul>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-text" style="color:var(--danger-color)" id="logout-btn">Logout</button>
+                    <button class="btn-text" onclick="showModal('profile-view-modal', false)">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="chat-lock-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-title">Chat Locked 🔒</div>
+                <p style="color:var(--wa-text-secondary); font-size:14px; margin-bottom:10px;">Enter password to unlock this chat:</p>
+                <input type="password" id="chat-lock-password" class="auth-input" placeholder="Password" style="width:100%">
+                <div class="modal-actions">
+                    <button class="btn-text" onclick="showModal('chat-lock-modal', false); document.getElementById('chat-lock-password').value='';">Cancel</button>
+                    <button id="submit-chat-unlock" class="btn-text">Unlock</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="about-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-title">About</div>
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <img src="https://i.postimg.cc/QHxzZvPP/DEVELOPER-LOGO-jpg.png" alt="Dev Logo" class="dev-logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzU1NSI+PHBhdGggZD0iTTEyIDJDMTYuNDEgMiAyMCA1LjU5IDIwIDEwQzIwIDE0LjQxIDE2LjQxIDE4IDEyIDE4QzcuNTkgMTggNCAxNC40MSA0IDEwQzQgNS41OSA3LjU5IDIgMTIgMlpNMTIgMjJDMTYuNDEgMjIgMjAgMjAuMjEgMjAgMTggMTYuNDEgMTguNSAxMiAxOC41IDcuNTkgMTguNSAzIDE4IDMgMjAuMjEgNy41OSAyMiAxMiAyMloiLz48L3N2Zz4='">
+                    <div class="about-header">Developed by G PORTAL</div>
+                    <p class="about-text">Welcome to Apsi Talk. We are a Lucknow-based development studio focused on building high-quality communication tools.</p>
+                    <p class="about-text">Our goal is to keep you connected with friends and family through a secure and stylish platform. Thank you for choosing G PORTAL for your daily conversations.</p>
+                    
+                    <div class="about-header">Developer Information</div>
+                    <p class="about-text">
+                        <strong>Developer:</strong> G PORTAL<br>
+                        <strong>Location:</strong> Lucknow, India<br>
+                        <strong>Contact Us:</strong> officialgauravshyamshukla@gmail.com
+                    </p>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-text" onclick="showModal('about-modal', false)">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="incoming-call-modal" class="modal hidden">
+            <div class="modal-content" style="text-align:center;">
+                <div class="modal-title">Incoming Call</div>
+                <div id="incoming-caller-avatar" class="avatar" style="width:60px; height:60px; font-size:25px; margin: 0 auto 15px;"></div>
+                <h3 id="incoming-caller-name">User</h3>
+                <p id="incoming-call-type">Video Call</p>
+                <div class="modal-actions" style="justify-content: center; gap: 20px; margin-top:25px;">
+                    <button id="reject-call-btn" class="call-btn btn-end">
+                        <svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:white"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
+                    </button>
+                    <button id="accept-call-btn" class="call-btn btn-accept">
+                        <svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:white"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyDIo8NfL-5huJDZzEMKFNTQRXvkV9jRPg4",
+          authDomain: "me-chat-2ccdd.firebaseapp.com",
+          databaseURL: "https://me-chat-2ccdd-default-rtdb.firebaseio.com",
+          projectId: "me-chat-2ccdd",
+          storageBucket: "me-chat-2ccdd.firebasestorage.app",
+          messagingSenderId: "27517012126",
+          appId: "1:27517012126:web:606a4dd4478250f89e138f"
+        };
+        
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        // --- 2. GLOBAL STATE ---
+        let currentUser = null;
+        let currentProfile = null;
+        let currentChatPartner = null; 
+        let currentChatId = null;
+        let pendingChatData = null; // For Lock Mechanism
+        
+        let peerConnection = null;
+        let localStream = null;
+        let incomingCallData = null;
+
+        const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
+
+        // --- 3. UTILITY FUNCTIONS ---
+        const el = (id) => document.getElementById(id);
+        
+        function showView(viewId) {
+            ['auth-view', 'main-view', 'chat-view', 'video-call-view', 'voice-call-view'].forEach(id => el(id).classList.add('hidden'));
+            el(viewId).classList.remove('hidden');
+        }
+
+        function showModal(modalId, show = true) {
+            if(show) el(modalId).classList.remove('hidden');
+            else el(modalId).classList.add('hidden');
+        }
+
+        function showPanel(panelId) {
+            document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            el(panelId).classList.add('active');
+            if(panelId === 'home-content') el('nav-home').classList.add('active');
+            if(panelId === 'notifications-content') el('nav-notifications').classList.add('active');
+            if(panelId === 'calls-content') el('nav-calls').classList.add('active');
+        }
+
+        function getChatId(uid1, uid2) {
+            return uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`;
+        }
+
+        // --- 4. AUTH & PROFILE ---
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                db.ref(`users/${user.uid}`).once('value').then(snapshot => {
+                    if (snapshot.exists()) {
+                        currentProfile = snapshot.val();
+                        initApp();
+                    } else {
+                        showView('auth-view');
+                        showModal('profile-setup-modal');
+                    }
+                });
+            } else {
+                currentUser = null;
+                currentProfile = null;
+                showView('auth-view');
+            }
+        });
+
+        el('go-to-signup').onclick = () => { el('login-form').classList.add('hidden'); el('signup-form').classList.remove('hidden'); };
+        el('go-to-login').onclick = () => { el('signup-form').classList.add('hidden'); el('login-form').classList.remove('hidden'); };
+
+        el('login-form').onsubmit = (e) => {
+            e.preventDefault();
+            auth.signInWithEmailAndPassword(el('login-email').value, el('login-password').value).catch(err => el('login-error').innerText = err.message);
+        };
+
+        el('signup-form').onsubmit = (e) => {
+            e.preventDefault();
+            auth.createUserWithEmailAndPassword(el('signup-email').value, el('signup-password').value).catch(err => el('signup-error').innerText = err.message);
+        };
+
+        el('logout-btn').onclick = () => { auth.signOut(); location.reload(); };
+
+        el('save-profile-btn').onclick = () => {
+            const username = el('setup-username').value.trim().toLowerCase();
+            const name = el('setup-name').value;
+            const emoji = el('setup-emoji').value || '👤';
+
+            if(!username || !name) return alert("Please fill all fields");
+            db.ref(`usernames/${username}`).once('value').then(snapshot => {
+                if(snapshot.exists()) alert("Username already taken!");
+                else {
+                    const updates = {};
+                    updates[`users/${currentUser.uid}`] = { uid: currentUser.uid, username, name, emoji, email: currentUser.email };
+                    updates[`usernames/${username}`] = currentUser.uid;
+                    db.ref().update(updates).then(() => {
+                        currentProfile = { uid: currentUser.uid, username, name, emoji };
+                        showModal('profile-setup-modal', false);
+                        initApp();
+                    });
+                }
+            });
+        };
+
+        // --- 5. APP INITIALIZATION ---
+        function initApp() {
+            showView('main-view');
+            loadContacts();
+            listenForRequests();
+            listenForIncomingCalls();
+            el('profile-display-name').innerText = currentProfile.name;
+            el('profile-display-username').innerText = '@' + currentProfile.username;
+            el('profile-display-avatar').innerText = currentProfile.emoji;
+            loadBlockedUsers();
+        }
+
+        // --- 6. FRIEND SYSTEM ---
+        el('add-friend-btn').onclick = () => showModal('add-friend-modal');
+        el('submit-friend-req').onclick = () => {
+            const targetUsername = el('add-friend-username').value.trim().toLowerCase();
+            if(!targetUsername) return;
+            if(targetUsername === currentProfile.username) return alert("You cannot add yourself.");
+
+            db.ref(`usernames/${targetUsername}`).once('value').then(snap => {
+                if(!snap.exists()) alert("User not found.");
+                else {
+                    const targetUid = snap.val();
+                    if(currentProfile.blocked && currentProfile.blocked[targetUid]) return alert("You blocked this user.");
+                    db.ref(`requests/${targetUid}/${currentUser.uid}`).set({ username: currentProfile.username, emoji: currentProfile.emoji, status: 'pending' })
+                    .then(() => { alert("Request sent!"); showModal('add-friend-modal', false); el('add-friend-username').value = ''; });
+                }
+            });
+        };
+
+        function listenForRequests() {
+            db.ref(`requests/${currentUser.uid}`).on('value', snapshot => {
+                const list = el('notifications-content'); list.innerHTML = '';
+                el('badge-notify').innerText = snapshot.numChildren() > 0 ? snapshot.numChildren() : '';
+                snapshot.forEach(child => {
+                    const req = child.val();
+                    const div = document.createElement('div');
+                    div.className = 'list-item';
+                    div.innerHTML = `<div class="avatar">${req.emoji || '👤'}</div>
+                        <div class="item-details"><div class="item-name">@${req.username}</div><div class="item-subtext">Wants to be friends</div></div>
+                        <div class="item-actions">
+                            <button class="icon-btn" style="color:var(--success-color)" onclick="acceptRequest('${child.key}', '${req.username}', '${req.emoji}')">✔</button>
+                            <button class="icon-btn" style="color:var(--danger-color)" onclick="rejectRequest('${child.key}')">✖</button>
+                        </div>`;
+                    list.appendChild(div);
+                });
+            });
+        }
+
+        window.acceptRequest = (senderUid, username, emoji) => {
+            const updates = {};
+            updates[`contacts/${currentUser.uid}/${senderUid}`] = { username, emoji };
+            updates[`contacts/${senderUid}/${currentUser.uid}`] = { username: currentProfile.username, emoji: currentProfile.emoji };
+            updates[`requests/${currentUser.uid}/${senderUid}`] = null;
+            db.ref().update(updates);
+        };
+
+        window.rejectRequest = (senderUid) => db.ref(`requests/${currentUser.uid}/${senderUid}`).remove();
+
+        function loadContacts() {
+            db.ref(`contacts/${currentUser.uid}`).on('value', snapshot => {
+                const list = el('home-content'); list.innerHTML = '';
+                snapshot.forEach(child => {
+                    const friend = child.val();
+                    const uid = child.key;
+                    const div = document.createElement('div');
+                    div.className = 'list-item';
+                    div.innerHTML = `<div class="avatar">${friend.emoji}</div>
+                        <div class="item-details"><div class="item-name">${friend.username}</div><div class="item-subtext">Tap to chat</div></div>`;
+                    div.onclick = () => initChatSequence(uid, friend); // CHANGED to Sequence
+                    list.appendChild(div);
+                });
+            });
+        }
+
+        // --- 7. CHAT LOCK & MESSAGING ---
+        
+        // Step 1: Click Contact -> Prompt Password
+        function initChatSequence(uid, friendData) {
+            pendingChatData = { uid, friendData };
+            showModal('chat-lock-modal');
+        }
+
+        // Step 2: Validate Password
+        el('submit-chat-unlock').onclick = () => {
+            const pass = el('chat-lock-password').value;
+            if(pass === "APSI1432") {
+                showModal('chat-lock-modal', false);
+                el('chat-lock-password').value = "";
+                openChat(pendingChatData.uid, pendingChatData.friendData);
+            } else {
+                alert("Incorrect Password!");
+            }
+        };
+
+        // Step 3: Open Chat & 24hr Deletion Logic
+        function openChat(uid, friendData) {
+            currentChatPartner = { uid, ...friendData };
+            currentChatId = getChatId(currentUser.uid, uid);
+            
+            el('chat-header-name').innerText = friendData.username;
+            el('chat-header-avatar').innerText = friendData.emoji;
+            el('chat-messages').innerHTML = ''; 
+            
+            showView('chat-view');
+            
+            // Auto Delete Logic (24 Hours)
+            const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+
+            db.ref(`messages/${currentChatId}`).off(); 
+            db.ref(`messages/${currentChatId}`).limitToLast(100).on('child_added', snapshot => {
+                const msg = snapshot.val();
+                
+                // If message is older than 24 hours
+                if (msg.timestamp && msg.timestamp < twentyFourHoursAgo) {
+                    // Remove from DB to clean up
+                    db.ref(`messages/${currentChatId}/${snapshot.key}`).remove();
+                    // Do NOT render
+                    return;
+                }
+
+                renderMessage(msg);
+                el('chat-messages').scrollTop = el('chat-messages').scrollHeight;
+            });
+        }
+
+        el('chat-send-btn').onclick = sendMessage;
+        el('chat-input').onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
+
+        function sendMessage() {
+            const text = el('chat-input').value.trim();
+            if(!text) return;
+            db.ref(`messages/${currentChatId}`).push({
+                sender: currentUser.uid,
+                text: text,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+            el('chat-input').value = '';
+        }
+
+        function renderMessage(msg) {
+            const div = document.createElement('div');
+            const isMe = msg.sender === currentUser.uid;
+            div.className = `message-bubble ${isMe ? 'message-sent' : 'message-received'}`;
+            const time = new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            div.innerHTML = `${msg.text} <span class="msg-time">${time}</span>`;
+            el('chat-messages').appendChild(div);
+        }
+
+        el('chat-back-btn').onclick = () => showView('main-view');
+
+        // About Button
+        el('about-btn').onclick = () => showModal('about-modal');
+
+        // --- 8. CALLING ---
+        el('video-call-btn').onclick = () => startCall('video');
+        el('voice-call-btn').onclick = () => startCall('voice');
+        el('end-video-call-btn').onclick = endCall;
+        el('end-voice-call-btn').onclick = endCall;
+        el('reject-call-btn').onclick = () => { db.ref(`calls/${currentUser.uid}`).remove(); showModal('incoming-call-modal', false); el('ringtone').pause(); };
+        el('accept-call-btn').onclick = answerCall;
+
+        async function startCall(type) {
+            const callId = currentChatId; const calleeUid = currentChatPartner.uid;
+            if(type === 'video') showView('video-call-view');
+            else { showView('voice-call-view'); el('voice-caller-name').innerText = currentChatPartner.username; el('voice-caller-avatar').innerText = currentChatPartner.emoji; }
+            
+            await initLocalStream(type);
+            peerConnection = new RTCPeerConnection(servers);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            peerConnection.onicecandidate = event => { if (event.candidate) db.ref(`iceCandidates/${callId}/caller`).push(event.candidate.toJSON()); };
+            peerConnection.ontrack = event => {
+                if(type === 'video') el('remote-video').srcObject = event.streams[0];
+                else el('remote-audio').srcObject = event.streams[0];
+            };
+
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            db.ref(`calls/${calleeUid}`).set({ callId, callerUid: currentUser.uid, callerName: currentProfile.username, callerEmoji: currentProfile.emoji, type, offer: { type: offer.type, sdp: offer.sdp } });
+
+            db.ref(`calls/${calleeUid}`).on('value', snapshot => {
+                const data = snapshot.val();
+                if(data && data.answer && !peerConnection.currentRemoteDescription) peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+            });
+            db.ref(`iceCandidates/${callId}/callee`).on('child_added', snapshot => peerConnection.addIceCandidate(new RTCIceCandidate(snapshot.val())));
+        }
+
+        function listenForIncomingCalls() {
+            db.ref(`calls/${currentUser.uid}`).on('value', snapshot => {
+                const data = snapshot.val();
+                if(data && data.offer) {
+                    if(currentProfile.blocked && currentProfile.blocked[data.callerUid]) return;
+                    incomingCallData = data;
+                    el('incoming-caller-name').innerText = data.callerName; el('incoming-caller-avatar').innerText = data.callerEmoji;
+                    el('incoming-call-type').innerText = data.type === 'video' ? 'Video Call' : 'Voice Call';
+                    showModal('incoming-call-modal'); el('ringtone').play();
+                } else {
+                    showModal('incoming-call-modal', false); el('ringtone').pause();
+                    if(peerConnection) endCall();
+                }
+            });
+        }
+
+        async function answerCall() {
+            el('ringtone').pause(); showModal('incoming-call-modal', false);
+            const type = incomingCallData.type; const callId = incomingCallData.callId;
+            if(type === 'video') { showView('video-call-view'); el('video-caller-name').innerText = incomingCallData.callerName; }
+            else { showView('voice-call-view'); el('voice-caller-name').innerText = incomingCallData.callerName; el('voice-caller-avatar').innerText = incomingCallData.callerEmoji; }
+
+            await initLocalStream(type);
+            peerConnection = new RTCPeerConnection(servers);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            peerConnection.onicecandidate = event => { if (event.candidate) db.ref(`iceCandidates/${callId}/callee`).push(event.candidate.toJSON()); };
+            peerConnection.ontrack = event => {
+                 if(type === 'video') el('remote-video').srcObject = event.streams[0];
+                 else el('remote-audio').srcObject = event.streams[0];
+            };
+
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingCallData.offer));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            db.ref(`calls/${currentUser.uid}`).update({ answer: { type: answer.type, sdp: answer.sdp } });
+            db.ref(`iceCandidates/${callId}/caller`).on('child_added', snapshot => peerConnection.addIceCandidate(new RTCIceCandidate(snapshot.val())));
+        }
+
+        async function initLocalStream(type) {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
+                if(type === 'video') el('local-video').srcObject = localStream;
+            } catch(e) { console.error(e); alert("Could not access camera/microphone"); }
+        }
+
+        function endCall() {
+            if(localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
+            if(peerConnection) { peerConnection.close(); peerConnection = null; }
+            if(incomingCallData) { db.ref(`calls/${currentUser.uid}`).remove(); incomingCallData = null; }
+            else if (currentChatPartner) db.ref(`calls/${currentChatPartner.uid}`).remove();
+            
+            const logPanel = el('calls-content');
+            const log = document.createElement('div');
+            log.className = 'list-item'; log.innerHTML = `<div class="item-name">Call Ended</div>`;
+            logPanel.prepend(log);
+
+            if(currentChatPartner) showView('chat-view'); else showView('main-view');
+        }
+
+        // --- 9. BLOCKING & MENU ---
+        el('menu-btn').onclick = () => showModal('profile-view-modal');
+        function loadBlockedUsers() {
+             const list = el('blocked-list'); list.innerHTML = '';
+             if(!currentProfile.blocked) return;
+             Object.keys(currentProfile.blocked).forEach(blockedUid => {
+                 const li = document.createElement('li');
+                 li.innerHTML = `${blockedUid} <button style="color:red; border:none; background:none; cursor:pointer" onclick="unblock('${blockedUid}')">Unblock</button>`;
+                 list.appendChild(li);
+             });
+        }
+        el('chat-more-btn').onclick = () => {
+            if(confirm(`Block ${currentChatPartner.username}?`)) {
+                db.ref(`users/${currentUser.uid}/blocked/${currentChatPartner.uid}`).set(true);
+                alert("User blocked"); showView('main-view'); location.reload();
+            }
+        };
+        window.unblock = (uid) => db.ref(`users/${currentUser.uid}/blocked/${uid}`).remove().then(() => loadBlockedUsers());
+
+        // Nav Tabs
+        el('nav-home').onclick = () => showPanel('home-content');
+        el('nav-notifications').onclick = () => showPanel('notifications-content');
+        el('nav-calls').onclick = () => showPanel('calls-content');
+
+        // Draggable Local Video
+        const localVid = el('local-video');
+        let isDragging = false;
+        localVid.addEventListener('mousedown', () => isDragging = true);
+        window.addEventListener('mouseup', () => isDragging = false);
+        window.addEventListener('mousemove', (e) => {
+            if(isDragging) {
+                localVid.style.left = e.clientX - 50 + 'px';
+                localVid.style.top = e.clientY - 65 + 'px';
+                localVid.style.bottom = 'auto'; localVid.style.right = 'auto';
+            }
+        });
+
+    </script>
+</body>
+</html>
